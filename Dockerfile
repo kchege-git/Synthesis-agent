@@ -15,7 +15,8 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install Python deps (skip heavy Whisper model weights at build time)
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
