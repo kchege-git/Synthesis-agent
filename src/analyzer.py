@@ -1,6 +1,6 @@
 """
 Claude API analyzer: extracts structured takeaways and quotes from a transcript.
-Uses claude-opus-4-6 with adaptive thinking for high-quality analysis.
+Uses claude-opus-4-6 for high-quality analysis.
 """
 
 import json
@@ -36,14 +36,6 @@ def analyze_transcript(
     event_name: str = "HBS Africa Business Conference",
     event_date: str = "",
 ) -> dict:
-    """
-    Analyse a transcript and return structured content.
-
-    Returns a dict with keys:
-        social_media_intro  – string
-        takeaways           – list of takeaway dicts
-        quotes              – list of quote dicts
-    """
     context_lines = [
         f"Panel/Session: {panel_name or 'Business Panel Discussion'}",
         f"Speakers: {speaker_names or 'Panel speakers (names may appear in transcript)'}",
@@ -68,10 +60,7 @@ Return a single JSON object with EXACTLY this structure — no markdown, no extr
 {{
   "social_media_intro": "A compelling 2–3 sentence caption for LinkedIn/Instagram. \
 Introduce the speaker(s) and their credentials, mention the event, and set up the \
-takeaways. Write in third person. Use the style of the example: 'This week, the HBS \
-Africa Business Club was privileged to host [Name] for a [fireside chat / panel] on \
-[topic]. [Name] is [title/role] with a career spanning [brief bio]. Below are a few \
-takeaways from the conversation:'",
+takeaways. Write in third person.",
 
   "takeaways": [
     {{
@@ -79,10 +68,8 @@ takeaways from the conversation:'",
       "headline": "A punchy, memorable headline capturing the core insight (max 15 words)",
       "sub_bullets": [
         {{
-          "bold_phrase": "The opening bold phrase (4–8 words, ends without a period — \
-the period goes at the end of the full sentence in the body)",
-          "body": "The explanatory sentence(s) that follow the bold phrase. \
-1–2 sentences max. Can reference specific examples from the discussion."
+          "bold_phrase": "Opening bold phrase (4–8 words)",
+          "body": "Explanatory sentence(s) that follow. 1–2 sentences max."
         }}
       ]
     }}
@@ -90,11 +77,9 @@ the period goes at the end of the full sentence in the body)",
 
   "quotes": [
     {{
-      "text": "Verbatim quote from the transcript. Aim for 15–50 words — \
-short enough to read on a screen, long enough to carry meaning.",
+      "text": "Verbatim quote from the transcript. 15–50 words.",
       "speaker": "Speaker name, or 'Unknown' if not identifiable",
-      "rationale": "One sentence explaining why this quote was selected \
-(insightful / memorable / actionable / quotable)"
+      "rationale": "One sentence explaining why this quote was selected"
     }}
   ]
 }}
@@ -102,24 +87,20 @@ short enough to read on a screen, long enough to carry meaning.",
 RULES:
 1. Extract 3–5 key takeaways (aim for 3–4 substantive ones)
 2. Each takeaway should have 2–4 sub-bullets
-3. Select EXACTLY 3 top quotes — choose the most insightful, memorable, \
-and screen-worthy passages
+3. Select EXACTLY 3 top quotes — choose the most insightful, memorable, screen-worthy passages
 4. Quotes must be short enough to fit on a screen (15–50 words ideal)
 5. Make headlines punchy — avoid generic phrases like "Importance of X"
-6. If speaker names are visible in the transcript, use them in the social_media_intro \
-and for quote attribution
+6. If speaker names are visible in the transcript, use them in the social_media_intro and for quote attribution
 7. Return ONLY valid JSON"""
 
     client = _get_client()
     response = client.messages.create(
         model="claude-opus-4-6",
         max_tokens=4096,
-        thinking={"type": "adaptive"},
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": prompt}],
     )
 
-    # Extract text block (thinking blocks come first)
     text_response = ""
     for block in response.content:
         if block.type == "text":
@@ -130,9 +111,7 @@ and for quote attribution
 
 
 def _parse_json_response(text: str) -> dict:
-    """Parse Claude's JSON response, stripping markdown fences if present."""
     text = text.strip()
-    # Strip markdown code fences
     text = re.sub(r"^```(?:json)?\s*", "", text)
     text = re.sub(r"\s*```$", "", text)
     text = text.strip()
@@ -140,10 +119,7 @@ def _parse_json_response(text: str) -> dict:
     try:
         return json.loads(text)
     except json.JSONDecodeError:
-        # Try to find the JSON object inside the response
         match = re.search(r"\{[\s\S]*\}", text)
         if match:
             return json.loads(match.group())
-        raise ValueError(
-            "Claude did not return valid JSON. Raw response:\n" + text[:500]
-        )
+        raise ValueError("Claude did not return valid JSON. Raw response:\n" + text[:500])

@@ -6,7 +6,7 @@ Pipeline:
   2. Transcribe (if audio) and parse the transcript
   3. Analyse with Claude (takeaways + quotes)
   4. Generate PPTX slides (image overlays + quote slides)
-  5. Generate PNG quote cards (for campus screens)
+  5. Generate PNG quote cards (1080×1080) for campus screens
   6. Write plain-text takeaways, quotes, and social media caption
   7. Bundle everything as a ZIP and return download link
 """
@@ -28,16 +28,12 @@ from src.analyzer import analyze_transcript
 from src.slide_generator import generate_pptx
 from src.quote_card_generator import generate_quote_cards
 
-# ---------------------------------------------------------------------------
-# App setup
-# ---------------------------------------------------------------------------
+app = FastAPI(title="Panel Synthesis Agent", version="2.0.0")
 
-app = FastAPI(title="Panel Transcription Agent", version="1.0.0")
-
-BASE_DIR    = Path(__file__).parent
-UPLOAD_DIR  = BASE_DIR / "uploads"
-OUTPUT_DIR  = BASE_DIR / "outputs"
-STATIC_DIR  = BASE_DIR / "static"
+BASE_DIR     = Path(__file__).parent
+UPLOAD_DIR   = BASE_DIR / "uploads"
+OUTPUT_DIR   = BASE_DIR / "outputs"
+STATIC_DIR   = BASE_DIR / "static"
 TEMPLATE_DIR = BASE_DIR / "templates"
 
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -56,9 +52,13 @@ async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
 @app.post("/process")
 async def process(
-    request: Request,
     transcript_file: UploadFile = File(...),
     image1: UploadFile = File(None),
     image2: UploadFile = File(None),
@@ -68,23 +68,17 @@ async def process(
     event_name:    str = Form(default="HBS Africa Business Conference"),
     event_date:    str = Form(default=""),
 ):
-    # Validate API key early
     if not os.environ.get("ANTHROPIC_API_KEY"):
-        raise HTTPException(
-            status_code=500,
-            detail="ANTHROPIC_API_KEY environment variable is not set.",
-        )
+        raise HTTPException(500, "ANTHROPIC_API_KEY environment variable is not set.")
 
-    job_id   = str(uuid.uuid4())[:10]
-    job_dir  = OUTPUT_DIR / job_id
-    tmp_dir  = UPLOAD_DIR / job_id
+    job_id  = str(uuid.uuid4())[:10]
+    job_dir = OUTPUT_DIR / job_id
+    tmp_dir = UPLOAD_DIR / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
     tmp_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        # ------------------------------------------------------------------
         # 1. Save and process transcript / audio
-        # ------------------------------------------------------------------
         if not transcript_file or not transcript_file.filename:
             raise HTTPException(400, "Please upload a transcript or audio file.")
 
@@ -98,9 +92,7 @@ async def process(
         if len(transcript_text.strip()) < 50:
             raise HTTPException(400, "Transcript appears to be empty or too short.")
 
-        # ------------------------------------------------------------------
         # 2. Save background images
-        # ------------------------------------------------------------------
         bg_images = []
         for img_upload in (image1, image2, image3):
             if img_upload and img_upload.filename:
@@ -111,9 +103,7 @@ async def process(
         if not bg_images:
             raise HTTPException(400, "Please upload at least one background image.")
 
-        # ------------------------------------------------------------------
         # 3. Analyse with Claude
-        # ------------------------------------------------------------------
         analysis = analyze_transcript(
             transcript=transcript_text,
             panel_name=panel_name,
@@ -122,9 +112,7 @@ async def process(
             event_date=event_date,
         )
 
-        # ------------------------------------------------------------------
         # 4. Generate PPTX
-        # ------------------------------------------------------------------
         pptx_path = str(job_dir / "slides.pptx")
         generate_pptx(
             analysis=analysis,
@@ -136,40 +124,26 @@ async def process(
             work_dir=str(tmp_dir),
         )
 
-        # ------------------------------------------------------------------
         # 5. Generate PNG quote cards
-        # ------------------------------------------------------------------
         cards_dir   = job_dir / "quote_cards"
         quote_cards = generate_quote_cards(analysis, str(cards_dir))
 
-        # ------------------------------------------------------------------
         # 6. Write plain-text files
-        # ------------------------------------------------------------------
-        (job_dir / "quotes.txt").write_text(
-            _format_quotes(analysis), encoding="utf-8"
-        )
-        (job_dir / "takeaways.txt").write_text(
-            _format_takeaways(analysis), encoding="utf-8"
-        )
+        (job_dir / "quotes.txt").write_text(_format_quotes(analysis), encoding="utf-8")
+        (job_dir / "takeaways.txt").write_text(_format_takeaways(analysis), encoding="utf-8")
         (job_dir / "social_media_caption.txt").write_text(
             analysis.get("social_media_intro", ""), encoding="utf-8"
         )
-        (job_dir / "analysis.json").write_text(
-            json.dumps(analysis, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
 
-        # ------------------------------------------------------------------
         # 7. Bundle as ZIP
-        # ------------------------------------------------------------------
         zip_path = OUTPUT_DIR / f"panel_assets_{job_id}.zip"
         with zipfile.ZipFile(str(zip_path), "w", zipfile.ZIP_DEFLATED) as zf:
-            zf.write(pptx_path,                          "slides.pptx")
+            zf.write(pptx_path, "slides.pptx")
             for cp in quote_cards:
                 zf.write(cp, f"quote_cards/{Path(cp).name}")
-            zf.write(str(job_dir / "quotes.txt"),        "quotes.txt")
-            zf.write(str(job_dir / "takeaways.txt"),     "takeaways.txt")
-            zf.write(str(job_dir / "social_media_caption.txt"),
-                     "social_media_caption.txt")
+            zf.write(str(job_dir / "quotes.txt"), "quotes.txt")
+            zf.write(str(job_dir / "takeaways.txt"), "takeaways.txt")
+            zf.write(str(job_dir / "social_media_caption.txt"), "social_media_caption.txt")
 
     except HTTPException:
         raise
@@ -203,12 +177,10 @@ async def download(job_id: str):
 # ---------------------------------------------------------------------------
 
 async def _save_upload(upload: UploadFile, dest: Path) -> None:
-    content = await upload.read()
-    dest.write_bytes(content)
+    dest.write_bytes(await upload.read())
 
 
 def _safe_name(filename: str) -> str:
-    """Strip path components to prevent directory traversal."""
     return Path(filename).name or "upload"
 
 
@@ -229,35 +201,6 @@ def _format_takeaways(analysis: dict) -> str:
         lines.append(f"{t['number']})  {t['headline']}")
         lines.append("")
         for b in t.get("sub_bullets", []):
-            bp = b.get("bold_phrase", "")
-            bd = b.get("body", "")
-            lines.append(f"    • {bp}.  {bd}")
+            lines.append(f"    • {b.get('bold_phrase', '')}.  {b.get('body', '')}")
         lines.append("")
     return "\n".join(lines)
-
-
-# ---------------------------------------------------------------------------
-# Dev entry-point
-# ---------------------------------------------------------------------------
-
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
-
-
-if __name__ == "__main__":
-    import threading
-    import time
-    import webbrowser
-    import uvicorn
-
-    port = int(os.environ.get("PORT", 8000))
-    url = f"http://localhost:{port}"
-
-    def _open_browser():
-        time.sleep(1.5)  # wait for server to be ready
-        webbrowser.open(url)
-
-    threading.Thread(target=_open_browser, daemon=True).start()
-    print(f"\n  Panel Synthesis Agent → {url}\n")
-    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)
