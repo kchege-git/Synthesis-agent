@@ -69,7 +69,11 @@ async def process(
     event_date:    str = Form(default=""),
 ):
     if not os.environ.get("ANTHROPIC_API_KEY"):
-        raise HTTPException(500, "ANTHROPIC_API_KEY environment variable is not set.")
+        raise HTTPException(500, "ANTHROPIC_API_KEY is not set. Add it in your Railway environment variables.")
+
+    ext_check = Path(transcript_file.filename).suffix.lower().lstrip(".")
+    if ext_check in AUDIO_EXTENSIONS and not os.environ.get("OPENAI_API_KEY"):
+        raise HTTPException(500, "OPENAI_API_KEY is not set. Add it in your Railway environment variables to enable audio transcription.")
 
     job_id  = str(uuid.uuid4())[:10]
     job_dir = OUTPUT_DIR / job_id

@@ -1,9 +1,10 @@
 """
 Input processor: handles all transcript/audio input formats.
-Supports: .txt, .srt, .json, .docx, and audio files via faster-whisper.
+Supports: .txt, .srt, .json, .docx, and audio files via OpenAI Whisper API.
 """
 
 import json
+import os
 import re
 from pathlib import Path
 
@@ -26,14 +27,23 @@ def process_input(file_path: str, file_type: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Audio transcription — faster-whisper (binary wheel, no build tools needed)
+# Audio transcription — OpenAI Whisper API (cloud, no local model needed)
 # ---------------------------------------------------------------------------
 
 def _transcribe_audio(fp: Path) -> str:
-    from faster_whisper import WhisperModel  # type: ignore
-    model = WhisperModel("base", device="cpu", compute_type="int8")
-    segments, _info = model.transcribe(str(fp), beam_size=5)
-    return " ".join(seg.text.strip() for seg in segments)
+    import openai
+
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY environment variable is not set.")
+
+    client = openai.OpenAI(api_key=api_key)
+    with open(fp, "rb") as f:
+        transcript = client.audio.transcriptions.create(
+            model="whisper-1",
+            file=f,
+        )
+    return transcript.text.strip()
 
 
 # ---------------------------------------------------------------------------
@@ -100,6 +110,6 @@ def _join_segments(segments: list) -> str:
 # ---------------------------------------------------------------------------
 
 def _parse_docx(fp: Path) -> str:
-    from docx import Document  # type: ignore
+    from docx import Document
     doc = Document(str(fp))
     return "\n".join(p.text.strip() for p in doc.paragraphs if p.text.strip())
