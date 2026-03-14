@@ -63,15 +63,17 @@ async def process(
     image1: UploadFile = File(None),
     image2: UploadFile = File(None),
     image3: UploadFile = File(None),
-    panel_name:     str = Form(default=""),
-    speaker_names:  str = Form(default=""),
-    event_name:     str = Form(default="HBS Africa Business Conference"),
-    event_date:     str = Form(default=""),
-    openai_api_key: str = Form(default=""),
+    panel_name:        str = Form(default=""),
+    speaker_names:     str = Form(default=""),
+    event_name:        str = Form(default="HBS Africa Business Conference"),
+    event_date:        str = Form(default=""),
+    openai_api_key:    str = Form(default=""),
+    anthropic_api_key: str = Form(default=""),
 ):
-    resolved_key = openai_api_key.strip() or os.environ.get("OPENAI_API_KEY", "")
-    if not resolved_key:
-        raise HTTPException(500, "No OpenAI API key provided. Enter your key in the form.")
+    resolved_oai = openai_api_key.strip() or os.environ.get("OPENAI_API_KEY", "")
+    resolved_ant = anthropic_api_key.strip() or os.environ.get("ANTHROPIC_API_KEY", "")
+    if not resolved_oai and not resolved_ant:
+        raise HTTPException(500, "No API key provided. Enter an Anthropic or OpenAI key in the form.")
 
     job_id  = str(uuid.uuid4())[:10]
     job_dir = OUTPUT_DIR / job_id
@@ -105,14 +107,15 @@ async def process(
         if not bg_images:
             raise HTTPException(400, "Please upload at least one background image.")
 
-        # 3. Analyse with OpenAI
+        # 3. Analyse with AI (Anthropic preferred, falls back to OpenAI)
         analysis = analyze_transcript(
             transcript=transcript_text,
             panel_name=panel_name,
             speaker_names=speaker_names,
             event_name=event_name,
             event_date=event_date,
-            api_key=resolved_key,
+            openai_api_key=resolved_oai,
+            anthropic_api_key=resolved_ant,
         )
 
         # 4. Generate PPTX

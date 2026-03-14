@@ -82,6 +82,13 @@ function stopLoadingAnimation() {
 form.addEventListener("submit", async e => {
   e.preventDefault();
 
+  const antKey = (document.getElementById("anthropic_api_key")?.value || "").trim();
+  const oaiKey = (document.getElementById("openai_api_key")?.value || "").trim();
+  if (!antKey && !oaiKey) {
+    showError("Please enter at least one API key (Anthropic or OpenAI) before submitting.");
+    return;
+  }
+
   errorPanel.classList.add("hidden");
   resultsPanel.classList.add("hidden");
   startLoadingAnimation();

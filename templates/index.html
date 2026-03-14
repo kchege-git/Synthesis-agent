@@ -158,15 +158,20 @@
       <div class="card-header">
         <span class="step-num">04</span>
         <div>
-          <h2>OpenAI API Key</h2>
-          <p class="card-desc">Your key is used only for this request and is never stored. Get one at <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com</a>.</p>
+          <h2>API Key</h2>
+          <p class="card-desc">Enter <strong>at least one</strong> key. Keys are used only for this request and never stored. If both are provided, Anthropic is used.</p>
         </div>
       </div>
       <div class="form-grid">
-        <div class="field" style="grid-column: 1 / -1;">
-          <label for="openai_api_key">OpenAI API Key</label>
+        <div class="field">
+          <label for="anthropic_api_key">Anthropic API Key <span class="optional">(claude-haiku-4-5)</span></label>
+          <input type="password" id="anthropic_api_key" name="anthropic_api_key"
+            placeholder="sk-ant-..." autocomplete="off" />
+        </div>
+        <div class="field">
+          <label for="openai_api_key">OpenAI API Key <span class="optional">(gpt-4o-mini)</span></label>
           <input type="password" id="openai_api_key" name="openai_api_key"
-            placeholder="sk-..." autocomplete="off" required />
+            placeholder="sk-..." autocomplete="off" />
         </div>
       </div>
     </section>

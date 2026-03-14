@@ -1,26 +1,12 @@
 """
-OpenAI analyzer: extracts structured takeaways and quotes from a transcript.
-Uses gpt-4o-mini for cost-effective analysis.
+Analyzer: extracts structured takeaways and quotes from a transcript.
+Supports Anthropic (claude-haiku-4-5) and OpenAI (gpt-4o-mini).
+If both keys are supplied, Anthropic is preferred.
 """
 
 import json
 import re
-import openai
 import os
-
-_client = None
-
-
-def _get_client(api_key: str = "") -> openai.OpenAI:
-    global _client
-    key = api_key or os.environ.get("OPENAI_API_KEY", "")
-    # Return a fresh client when a per-request key is provided
-    if api_key:
-        return openai.OpenAI(api_key=key)
-    if _client is None:
-        _client = openai.OpenAI(api_key=key)
-    return _client
-
 
 SYSTEM_PROMPT = """You are an expert content analyst and communications strategist for the \
 Harvard Business School Africa Business Club (HBS ABC). You specialise in extracting \
@@ -40,7 +26,8 @@ def analyze_transcript(
     speaker_names: str = "",
     event_name: str = "HBS Africa Business Conference",
     event_date: str = "",
-    api_key: str = "",
+    openai_api_key: str = "",
+    anthropic_api_key: str = "",
 ) -> dict:
     context_lines = [
         f"Panel/Session: {panel_name or 'Business Panel Discussion'}",
@@ -99,7 +86,38 @@ RULES:
 6. If speaker names are visible in the transcript, use them in the social_media_intro and for quote attribution
 7. Return ONLY valid JSON"""
 
-    client = _get_client(api_key)
+    # Resolve keys — fall back to env vars for local/dev use
+    ant_key = anthropic_api_key.strip() or os.environ.get("ANTHROPIC_API_KEY", "")
+    oai_key = openai_api_key.strip() or os.environ.get("OPENAI_API_KEY", "")
+
+    if ant_key:
+        return _call_anthropic(ant_key, prompt)
+    if oai_key:
+        return _call_openai(oai_key, prompt)
+
+    raise ValueError("No API key available. Provide an Anthropic or OpenAI key.")
+
+
+def _call_anthropic(api_key: str, prompt: str) -> dict:
+    import anthropic
+    client = anthropic.Anthropic(api_key=api_key)
+    response = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=4096,
+        system=SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    text = ""
+    for block in response.content:
+        if block.type == "text":
+            text = block.text
+            break
+    return _parse_json_response(text)
+
+
+def _call_openai(api_key: str, prompt: str) -> dict:
+    import openai
+    client = openai.OpenAI(api_key=api_key)
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         max_tokens=4096,
@@ -108,9 +126,8 @@ RULES:
             {"role": "user", "content": prompt},
         ],
     )
-
-    text_response = response.choices[0].message.content or ""
-    return _parse_json_response(text_response)
+    text = response.choices[0].message.content or ""
+    return _parse_json_response(text)
 
 
 def _parse_json_response(text: str) -> dict:
@@ -125,4 +142,4 @@ def _parse_json_response(text: str) -> dict:
         match = re.search(r"\{[\s\S]*\}", text)
         if match:
             return json.loads(match.group())
-        raise ValueError("OpenAI did not return valid JSON. Raw response:\n" + text[:500])
+        raise ValueError("Model did not return valid JSON. Raw response:\n" + text[:500])
