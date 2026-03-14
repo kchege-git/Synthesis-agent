@@ -63,13 +63,15 @@ async def process(
     image1: UploadFile = File(None),
     image2: UploadFile = File(None),
     image3: UploadFile = File(None),
-    panel_name:    str = Form(default=""),
-    speaker_names: str = Form(default=""),
-    event_name:    str = Form(default="HBS Africa Business Conference"),
-    event_date:    str = Form(default=""),
+    panel_name:     str = Form(default=""),
+    speaker_names:  str = Form(default=""),
+    event_name:     str = Form(default="HBS Africa Business Conference"),
+    event_date:     str = Form(default=""),
+    openai_api_key: str = Form(default=""),
 ):
-    if not os.environ.get("OPENAI_API_KEY"):
-        raise HTTPException(500, "OPENAI_API_KEY is not set. Add it in your Railway environment variables.")
+    resolved_key = openai_api_key.strip() or os.environ.get("OPENAI_API_KEY", "")
+    if not resolved_key:
+        raise HTTPException(500, "No OpenAI API key provided. Enter your key in the form.")
 
     job_id  = str(uuid.uuid4())[:10]
     job_dir = OUTPUT_DIR / job_id
@@ -110,6 +112,7 @@ async def process(
             speaker_names=speaker_names,
             event_name=event_name,
             event_date=event_date,
+            api_key=resolved_key,
         )
 
         # 4. Generate PPTX

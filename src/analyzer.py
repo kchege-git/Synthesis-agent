@@ -11,10 +11,14 @@ import os
 _client = None
 
 
-def _get_client() -> openai.OpenAI:
+def _get_client(api_key: str = "") -> openai.OpenAI:
     global _client
+    key = api_key or os.environ.get("OPENAI_API_KEY", "")
+    # Return a fresh client when a per-request key is provided
+    if api_key:
+        return openai.OpenAI(api_key=key)
     if _client is None:
-        _client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        _client = openai.OpenAI(api_key=key)
     return _client
 
 
@@ -36,6 +40,7 @@ def analyze_transcript(
     speaker_names: str = "",
     event_name: str = "HBS Africa Business Conference",
     event_date: str = "",
+    api_key: str = "",
 ) -> dict:
     context_lines = [
         f"Panel/Session: {panel_name or 'Business Panel Discussion'}",
@@ -94,7 +99,7 @@ RULES:
 6. If speaker names are visible in the transcript, use them in the social_media_intro and for quote attribution
 7. Return ONLY valid JSON"""
 
-    client = _get_client()
+    client = _get_client(api_key)
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         max_tokens=4096,

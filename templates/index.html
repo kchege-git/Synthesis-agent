@@ -153,6 +153,24 @@
       </div>
     </section>
 
+    <!-- ── STEP 4: API Key ── -->
+    <section class="card">
+      <div class="card-header">
+        <span class="step-num">04</span>
+        <div>
+          <h2>OpenAI API Key</h2>
+          <p class="card-desc">Your key is used only for this request and is never stored. Get one at <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com</a>.</p>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="field" style="grid-column: 1 / -1;">
+          <label for="openai_api_key">OpenAI API Key</label>
+          <input type="password" id="openai_api_key" name="openai_api_key"
+            placeholder="sk-..." autocomplete="off" required />
+        </div>
+      </div>
+    </section>
+
     <!-- ── Submit ── -->
     <div class="submit-row">
       <button type="submit" class="btn-primary" id="submitBtn">
@@ -241,7 +259,7 @@
 
 <!-- ═══════════════════════════  FOOTER  ══════════════════════════════════ -->
 <footer class="site-footer">
-  <p>HBS Africa Business Club · Panel Synthesis Agent · Powered by Claude&nbsp;AI</p>
+  <p>HBS Africa Business Club · Panel Synthesis Agent · Powered by OpenAI</p>
 </footer>
 
 <script src="/static/app.js"></script>

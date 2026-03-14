@@ -55,7 +55,7 @@ const errorMsg      = document.getElementById("errorMsg");
 
 const LOADING_STEPS = [
   ["Transcribing / parsing input…",  "Reading your transcript or audio file"],
-  ["Analysing with Claude…",          "Extracting key takeaways and top quotes"],
+  ["Analysing with OpenAI…",           "Extracting key takeaways and top quotes"],
   ["Generating slides…",              "Creating your PPTX with image overlays"],
   ["Building quote cards…",           "Rendering high-res PNG cards for campus screens"],
   ["Packaging your assets…",          "Zipping everything up for download"],
