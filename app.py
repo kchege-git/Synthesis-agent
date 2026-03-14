@@ -246,6 +246,18 @@ async def health():
 
 
 if __name__ == "__main__":
+    import threading
+    import time
+    import webbrowser
     import uvicorn
+
     port = int(os.environ.get("PORT", 8000))
+    url = f"http://localhost:{port}"
+
+    def _open_browser():
+        time.sleep(1.5)  # wait for server to be ready
+        webbrowser.open(url)
+
+    threading.Thread(target=_open_browser, daemon=True).start()
+    print(f"\n  Panel Synthesis Agent → {url}\n")
     uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)
