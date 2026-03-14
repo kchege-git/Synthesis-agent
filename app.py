@@ -68,12 +68,8 @@ async def process(
     event_name:    str = Form(default="HBS Africa Business Conference"),
     event_date:    str = Form(default=""),
 ):
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        raise HTTPException(500, "ANTHROPIC_API_KEY is not set. Add it in your Railway environment variables.")
-
-    ext_check = Path(transcript_file.filename).suffix.lower().lstrip(".")
-    if ext_check in AUDIO_EXTENSIONS and not os.environ.get("OPENAI_API_KEY"):
-        raise HTTPException(500, "OPENAI_API_KEY is not set. Add it in your Railway environment variables to enable audio transcription.")
+    if not os.environ.get("OPENAI_API_KEY"):
+        raise HTTPException(500, "OPENAI_API_KEY is not set. Add it in your Railway environment variables.")
 
     job_id  = str(uuid.uuid4())[:10]
     job_dir = OUTPUT_DIR / job_id
@@ -107,7 +103,7 @@ async def process(
         if not bg_images:
             raise HTTPException(400, "Please upload at least one background image.")
 
-        # 3. Analyse with Claude
+        # 3. Analyse with OpenAI
         analysis = analyze_transcript(
             transcript=transcript_text,
             panel_name=panel_name,

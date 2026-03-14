@@ -1,19 +1,20 @@
 """
-Claude API analyzer: extracts structured takeaways and quotes from a transcript.
-Uses claude-opus-4-6 for high-quality analysis.
+OpenAI analyzer: extracts structured takeaways and quotes from a transcript.
+Uses gpt-4o-mini for cost-effective analysis.
 """
 
 import json
 import re
-import anthropic
+import openai
+import os
 
 _client = None
 
 
-def _get_client() -> anthropic.Anthropic:
+def _get_client() -> openai.OpenAI:
     global _client
     if _client is None:
-        _client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from env
+        _client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
     return _client
 
 
@@ -94,19 +95,16 @@ RULES:
 7. Return ONLY valid JSON"""
 
     client = _get_client()
-    response = client.messages.create(
-        model="claude-opus-4-6",
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
         max_tokens=4096,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": prompt}],
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": prompt},
+        ],
     )
 
-    text_response = ""
-    for block in response.content:
-        if block.type == "text":
-            text_response = block.text
-            break
-
+    text_response = response.choices[0].message.content or ""
     return _parse_json_response(text_response)
 
 
@@ -122,4 +120,4 @@ def _parse_json_response(text: str) -> dict:
         match = re.search(r"\{[\s\S]*\}", text)
         if match:
             return json.loads(match.group())
-        raise ValueError("Claude did not return valid JSON. Raw response:\n" + text[:500])
+        raise ValueError("OpenAI did not return valid JSON. Raw response:\n" + text[:500])
