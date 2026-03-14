@@ -1,0 +1,22 @@
+# Runtime directories (populated at runtime, not committed)
+uploads/
+outputs/
+
+# Environment
+.env
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Whisper model cache (downloaded at runtime)
+~/.cache/whisper/

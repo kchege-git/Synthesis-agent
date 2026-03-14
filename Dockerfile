@@ -1,0 +1,26 @@
+FROM python:3.11-slim
+
+# System dependencies: ffmpeg (audio), fonts (Pillow text), build tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    fonts-dejavu-core \
+    fonts-liberation \
+    libglib2.0-0 \
+    libgl1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt .
+
+# Install Python deps (skip heavy Whisper model weights at build time)
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+# Create runtime directories
+RUN mkdir -p uploads outputs
+
+EXPOSE 8000
+
+CMD uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}
