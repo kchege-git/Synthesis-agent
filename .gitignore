@@ -6,6 +6,11 @@ outputs/
 .env
 *.env
 
+# Node
+node_modules/
+dist/
+.env.local
+
 # Python
 __pycache__/
 *.py[cod]
