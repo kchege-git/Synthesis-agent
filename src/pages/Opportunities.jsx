@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
 const STATUSES = ['New', 'In Progress', 'Applied', 'Deferred', 'Deprioritized']
@@ -279,16 +280,24 @@ export default function Opportunities() {
                       </select>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      {opp.job_url ? (
-                        <a
-                          href={opp.job_url}
-                          target="_blank"
-                          rel="noreferrer"
+                      <div className="flex items-center gap-3">
+                        <Link
+                          to={`/opportunities/${opp.id}`}
                           className="text-indigo-600 hover:text-indigo-800 font-medium text-xs"
                         >
-                          View →
-                        </a>
-                      ) : null}
+                          Detail →
+                        </Link>
+                        {opp.job_url && (
+                          <a
+                            href={opp.job_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-gray-400 hover:text-gray-600 text-xs"
+                          >
+                            JD ↗
+                          </a>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

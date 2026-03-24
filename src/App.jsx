@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import NavBar from './components/NavBar'
 import Dashboard from './pages/Dashboard'
 import Opportunities from './pages/Opportunities'
+import OpportunityDetail from './pages/OpportunityDetail'
 import Tasks from './pages/Tasks'
 import Settings from './pages/Settings'
 
@@ -14,6 +15,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/opportunities" element={<Opportunities />} />
+            <Route path="/opportunities/:id" element={<OpportunityDetail />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
